@@ -20,5 +20,5 @@ def letterCombinations(digits):
     return letterCom(dic, [''], digits)
     
 if __name__ == '__main__':
-    digits = '234'
+    digits = "432"
     print(letterCombinations(digits))
