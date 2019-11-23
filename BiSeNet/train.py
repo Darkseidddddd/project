@@ -14,7 +14,7 @@ from utils import reverse_one_hot, compute_global_accuracy, fast_hist, \
 from loss import DiceLoss
 
 
-def val(args, model, dataloader):
+def val(args, model, dataloader, data_name):
     print('start val!')
     # label_info = get_label_info(csv_path)
     with torch.no_grad():
@@ -58,13 +58,14 @@ def val(args, model, dataloader):
         # miou_dict, miou = cal_miou(miou_list, csv_path)
         miou = np.mean(miou_list)
         # print('precision per pixel for test: %.3f' % precision)
-        print('oa for test: %.3f' % precision)
+        print('oa for %s: %.3f' %(data_name, precision))
         # print('mIoU for validation: %.3f' % miou)
-        print('mIoU for test: %.3f' %miou)
+        print('mIoU for %s: %.3f' %(data_name, miou))
         cm, cks, cr = compute_cm_cks_cr(predict, label)
-        print('cm for train:\n', cm)
-        print('kappa for train: %.4f' %cks)
-        print('cr for train:\n', cr)
+        if data_name == 'train':
+            print('cm for train:\n', cm)
+            print('kappa for train: %.4f' %cks)
+            print('cr for train:\n', cr)
         # miou_str = ''
         # for key in miou_dict:
         #     miou_str += '{}:{},\n'.format(key, miou_dict[key])
@@ -73,14 +74,14 @@ def val(args, model, dataloader):
         return precision, miou, cm, cks, cr
 
 
-def train(args, model, optimizer, dataloader_train, dataloader_val_train):
+def train(args, model, optimizer, dataloader_train, dataloader_val_train, dataloader_test):
     writer = SummaryWriter(comment=''.format(args.optimizer, args.context_path))
     if args.loss == 'dice':
         loss_func = DiceLoss()
     elif args.loss == 'crossentropy':
         loss_func = torch.nn.CrossEntropyLoss()
     max_miou = 0
-    step = 1011000
+    step = 0
     for epoch in range(args.epoch_start_i, args.num_epochs):
         lr = poly_lr_scheduler(optimizer, args.learning_rate, iter=epoch, max_iter=args.num_epochs)
         model.train()
@@ -116,16 +117,20 @@ def train(args, model, optimizer, dataloader_train, dataloader_val_train):
 
         if epoch % args.validation_step == 0:
             #precision, miou = val(args, model, dataloader_val)
-            oa, miou, cm, cks, cr = val(args, model, dataloader_val_train)
+            oa, miou, cm, cks, cr = val(args, model, dataloader_val_train, 'train')
+            oa_test, miou_test, cm_test, cks_test, cr_test = val(args, model, dataloader_test, 'test')
             if miou > max_miou:
                 max_miou = miou
                 torch.save(model.module.state_dict(),
                            os.path.join(args.save_model_path, 'best_dice_loss.pth'))
             #writer.add_scalar('epoch/precision_val', precision, epoch)
             writer.add_scalar('epoch/oa_train', oa, epoch)
+            writer.add_scalar('epoch/oa_test', oa_test, epoch)
             #writer.add_scalar('epoch/miou val', miou, epoch)
             writer.add_scalar('epoch/miou_train', miou, epoch)
+            writer.add_scalar('epoch/miou_test', miou_test, epoch)
             writer.add_scalar('epoch/cks_train', cks, epoch)
+            writer.add_scalar('epoch/cks_test', cks_test, epoch)
             with open(os.path.join(args.save_model_path, 'classification_results.txt'), mode='a') as f:
                 f.write('epoch: '+str(epoch)+'\n')
                 # f.write('train time:\t' + str(train_time))
@@ -171,11 +176,19 @@ def main(params):
     train_path = [os.path.join(args.data, 'train')]
     # train_label_path = [os.path.join(args.data, 'train_labels'), os.path.join(args.data, 'val_labels')]
     train_label_path = [os.path.join(args.data, 'train_label')]
-    test_path = os.path.join(args.data, 'test')
+    # test_path = os.path.join(args.data, 'test')
     # test_label_path = os.path.join(args.data, 'test_labels')
-    test_label_path = os.path.join(args.data, 'test_label')
+    # test_label_path = os.path.join(args.data, 'test_label')
     csv_path = os.path.join(args.data, 'class_dict_potsdam.csv')
 
+    # create dataset and dataloader
+    test_path = os.path.join(args.data, 'test')
+    # test_path = os.path.join(args.data, 'train')
+    test_label_path = os.path.join(args.data, 'test_label')
+    # test_label_path = os.path.join(args.data, 'train_labels')
+    # print(test_path, test_label_path)
+    # csv_path = os.path.join(args.data, 'class_dict.csv')
+    # csv_path = 'potsdam_512_IRRG/class_dict_potsdam.csv'
     
     dataset_train = CamVid(train_path, train_label_path, csv_path, scale=(args.crop_height, args.crop_width),
                            loss=args.loss, mode='train')
@@ -199,6 +212,13 @@ def main(params):
         num_workers=args.num_workers
     )
 
+    dataset_test = CamVid(test_path, test_label_path, csv_path, scale=(args.crop_height, args.crop_width), mode='test')
+    dataloader_test = DataLoader(
+        dataset_test,
+        batch_size=1,
+        shuffle=True,
+        num_workers=args.num_workers
+    )
     # build model
     os.environ['CUDA_VISIBLE_DEVICES'] = args.cuda
     model = BiSeNet(args.num_classes, args.context_path)
@@ -224,7 +244,7 @@ def main(params):
 
     # train
     # train(args, model, optimizer, dataloader_train, dataloader_val)
-    train(args, model, optimizer, dataloader_train, dataloader_val_train)
+    train(args, model, optimizer, dataloader_train, dataloader_val_train, dataloader_test)
 
     # val(args, model, dataloader_val, csv_path)
 
@@ -237,12 +257,12 @@ if __name__ == '__main__':
         '--num_workers', '8',
         '--num_classes', '6',
         '--cuda', '0',
-        '--batch_size', '2',  # 6 for resnet101, 12 for resnet18
+        '--batch_size', '6',  # 6 for resnet101, 12 for resnet18
         '--save_model_path', './checkpoints_18_sgd',
-        '--pretrained_model_path', './checkpoints_18_sgd/latest_dice_loss.pth',
+        # '--pretrained_model_path', './checkpoints_18_sgd/latest_dice_loss.pth',
         '--context_path', 'resnet18',  # only support resnet18 and resnet101
         '--optimizer', 'sgd',
-        '--epoch_start_i', '583', 
+        # '--epoch_start_i', '583', 
 
     ]
     main(params)
