@@ -81,20 +81,20 @@ def myNet(X, image_width, image_height, image_channel, n_class=30):
     pool2 = max_pool_2x2(layer2)
 
     # layer3
-    # layer3 = conv_bn_relu(pool2, kernelshape=[3, 3, 64, 128], scope='layer3')
-    # layer3 = conv_bn_relu(layer3, kernelshape=[3, 3, 128, 128], scope='layer3_1')
-    # pool3 = max_pool_2x2(layer3)
+    layer3 = conv_bn_relu(pool2, kernelshape=[3, 3, 64, 128], scope='layer3')
+    layer3 = conv_bn_relu(layer3, kernelshape=[3, 3, 128, 128], scope='layer3_1')
+    pool3 = max_pool_2x2(layer3)
     
     # layer4
     # layer4 = conv_bn_relu(pool3, kernelshape=[3, 3, 128, 256], scope='layer4')
     # layer4 = conv_bn_relu(layer4, kernelshape=[3, 3, 256, 256], scope='layer4_1')
     # pool4 = max_pool_2x2(layer4)
 
-    gap = tf.reduce_mean(pool2, axis=(1,2))
-    gap = tf.reshape(gap, shape=[-1,64])
-    fc1 = fullyconnected_relu_layer(gap, shape=[64, 128], scope='fc1')
-    fc2 = fullyconnected_relu_layer(fc1, shape=[128, 256], scope='fc2')
-    fc3 = fullyconnected_relu_layer(fc2, shape=[256, n_class], active=False, scope='fc3')
+    gap = tf.reduce_mean(pool3, axis=(1,2))
+    gap = tf.reshape(gap, shape=[-1,128])
+    fc1 = fullyconnected_relu_layer(gap, shape=[128, 256], scope='fc1')
+    fc2 = fullyconnected_relu_layer(fc1, shape=[256, 512], scope='fc2')
+    fc3 = fullyconnected_relu_layer(fc2, shape=[512, n_class], active=False, scope='fc3')
     
     return fc3
 
@@ -140,7 +140,7 @@ def train(epochs=1000, batch_size=6, lr=0.01):
     data_element = iterator.get_next()
 
     init = tf.initialize_all_variables()
-    saver = tf.train.Saver(tf.all_variables())
+    saver = tf.train.Saver(tf.all_variables(),max_to_keep=2)
     # 画图
     tf.summary.scalar('loss', cost)
     merged_summary_op = tf.summary.merge_all()
@@ -152,18 +152,20 @@ def train(epochs=1000, batch_size=6, lr=0.01):
 
     num_examples = train_images.shape[0]
     print('start training')
-    best_loss = 0.0
+    best_loss = 100.0
+    k = 0
     for e in range(epochs):
-        for i in range(num_examples//batch_size):
+        for i in range(0, num_examples, batch_size):
             X_batch, y_batch = sess.run(data_element)
             _, summary = sess.run([train_op, merged_summary_op], feed_dict={X: X_batch, y: y_batch})
-            summary_writer.add_summary(summary, i)    
+            summary_writer.add_summary(summary, k)
+            k += 1    
         
         # 计算训练集与测试集的loss
         cost_ = tf.square(y_pred-y)
         loss = 0.0
         train_nums = train_images.shape[0]
-        test_nums = train_images.shape[0]
+        test_nums = test_images.shape[0]
         for i in range(0, train_nums, batch_size):
             loss_ = cost_.eval(feed_dict={X: train_images[i:i+batch_size], y: train_labels[i:i+batch_size]})
             loss += np.sum(loss_)
@@ -178,12 +180,14 @@ def train(epochs=1000, batch_size=6, lr=0.01):
         # test_cost_epoch = cost.eval(feed_dict={X: test_images, y: test_labels})
         if best_loss > test_cost_epoch:
             best_loss = test_cost_epoch
+            saver.save(sess, 'model/my-model', global_step=e)
+            # print('-------------best loss: %.6f------------' %best_loss)
         print('epoch %d, train_loss: %.6f, test loss: %.6f' %(e, train_cost_epoch, test_cost_epoch))
 
     save_path = saver.save(sess, 'model/my-model')
     print('best loss: %.6f' %best_loss)
-    print('Model saved in file:', save_path)
+    # print('Model saved in file:', save_path)
     sess.close()
 
 if __name__ == '__main__':
-    train(epochs=500, batch_size=6, lr=0.0005)
+    train(epochs=700, batch_size=6, lr=0.0001)
