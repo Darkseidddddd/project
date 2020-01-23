@@ -43,6 +43,6 @@ def combinationSum_(candidates, target):
     return res
 
 if __name__ == '__main__':
-    candidates = [2,3,5]
+    candidates = [10,1,2,7,6,5]
     target = 8
     print(combinationSum_(candidates, target))
