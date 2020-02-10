@@ -1,130 +1,163 @@
-import tensorflow as tf
+import pandas as pd
 import numpy as np
-from prepare_data import load_data
+import keras
+import os
 from sklearn.model_selection import train_test_split
+from prepare_data import load_data
 
-def weight_xavier_init(shape, input_num, output_num, activationfunc='relu', uniform=True, variable_name=None):
-    if activationfunc == 'sigmoid':
-        if uniform:
-            init_range = tf.sqrt(6.0 / (input_num + output_num))
-            initial = tf.random_uniform(shape, -init_range, init_range)
-            return tf.Variable(initial, name=variable_name)
-        else:
-            stddev = tf.sqrt(2.0 / (input_num + output_num))
-            initial = tf.truncated_normal(shape, mean=0.0, stddev=stddev)
-            return tf.Variable(initial, name=variable_name)
-    elif activationfunc == 'relu':
-        if uniform:
-            init_range = tf.sqrt(6.0 / (input_num + output_num)) * np.sqrt(2)
-            initial = tf.random_uniform(shape, -init_range, init_range)
-            return tf.Variable(initial, name=variable_name)
-        else:
-            stddev = tf.sqrt(2.0 / (input_num + output_num)) * np.sqrt(2)
-            initial = tf.truncated_normal(shape, mean=0.0, stddev=stddev)
-            return tf.Variable(initial, name=variable_name)
-    elif activationfunc == 'tan':
-        if uniform:
-            init_range = tf.sqrt(6.0 / (input_num + output_num)) * 4
-            initial = tf.random_uniform(shape, -init_range, init_range)
-            return tf.Variable(initial, name=variable_name)
-        else:
-            stddev = tf.sqrt(2.0 / (input_num + output_num)) * 4
-            initial = tf.truncated_normal(shape, mean=0.0, stddev=stddev)
-            return tf.Variable(initial, name=variable_name)
-
-def bias_variable(shape, variable_name=None):
-    initial = tf.constant(0.1, shape=shape)
-    return tf.Variable(initial, name=variable_name)
-
-def conv2d(x, W, strides=1):
-    conv_2d = tf.nn.conv2d(x, W, strides=[1, strides, strides, 1], padding='SAME')
-    return conv_2d
-
-def max_pool_2x2(x, inception=False):
-    if inception:
-        pool2d = tf.nn.max_pool(x, ksize=[1, 3, 3, 1], strides=[1, 1, 1, 1], padding='SAME')
+from keras import optimizers
+from keras.layers.advanced_activations import LeakyReLU
+from keras.models import Sequential, Model
+from keras.layers import Input, AveragePooling2D, MaxPooling2D, BatchNormalization, Flatten, Dense, Dropout, Conv2D,MaxPool2D, add
+os.environ['CUDA_VISIABLE_DEVICES'] = '0,1'
+def Conv2d_BN(x, nb_filter, kernel_size, strides=(1, 1), padding='same', activation=True, name=None):
+    if name is not None:
+        bn_name = name + '_bn'
+        conv_name = name + '_conv'
     else:
-        pool2d = tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+        bn_name = None
+        conv_name = None
 
-    return pool2d
+    x = Conv2D(nb_filter, kernel_size, padding=padding, use_bias=True, strides=strides, name=conv_name)(x)
+    if activation:
+        x = LeakyReLU(alpha=0.1)(x)
+    x = BatchNormalization(axis=3, name=bn_name)(x)
+    return x
 
-def conv_bn_relu(x, kernelshape, scope=None):
-    with tf.name_scope(scope):
-        W = weight_xavier_init(shape=kernelshape, input_num=kernelshape[0] * kernelshape[1] * kernelshape[2], 
-                                output_num=kernelshape[-1], activationfunc='relu', variable_name=scope + 'W')
-        B = bias_variable([kernelshape[-1]], variable_name=scope + 'B')
-        conv = conv2d(x, W) + B
-        conv = tf.nn.relu(conv)
-        return conv
+def identity_Block(inpt, nb_filter, kernel_size, strides=(1, 1), with_conv_shortcut=False):
+    # 第一层卷积
+    x = Conv2d_BN(inpt, nb_filter=nb_filter, kernel_size=kernel_size, strides=strides,padding='same')
+    # 第二层卷积，之后不适用激活函数
+    x = Conv2d_BN(x, nb_filter=nb_filter, kernel_size=kernel_size, activation=False, padding='same')
+    # 满足条件让输入通道数保持相同
+    if with_conv_shortcut:
+        shortcut = Conv2d_BN(inpt, nb_filter=nb_filter, strides=strides, kernel_size=kernel_size, activation=False)
+        # 加和
+        x = add([x, shortcut])
+        x = LeakyReLU(alpha=0.1)(x)
+        return x
+    else:
+        # 否则直接相加
+        x = add([x, inpt])
+        x = LeakyReLU(alpha=0.1)(x)
+        return x
 
-def fullyconnected_relu_layer(x, shape, active=True, scope=None):
-    with tf.name_scope(scope):
-        W = weight_xavier_init(shape=shape, input_num=shape[0] * shape[1],
-                                output_num=shape[-1], activationfunc='relu', variable_name=scope + 'W')
-        B = bias_variable([shape[-1]], variable_name=scope + 'B')
-        conv = tf.matmul(x, W) + B
-        if active:
-            conv = tf.nn.relu(conv)
-        return conv
+def resnet(width,height,channel,classes):
+    inpt = Input(shape=(width, height, channel))
+    # x = ZeroPadding2D((2, 2))(inpt)
 
-def myNet(X, image_width, image_height, image_channel, n_class=30):
-    inputX = tf.reshape(X,[-1, image_width, image_height, image_channel])
-    # layer1
-    layer1 = conv_bn_relu(inputX, kernelshape=[3, 3, image_channel, 32], scope='layer1')
-    layer1 = conv_bn_relu(layer1, kernelshape=[3, 3, 32, 32], scope='layer1_1')
-    pool1 = max_pool_2x2(layer1)
-    # layer2
-    layer2 = conv_bn_relu(pool1, kernelshape=[3, 3, 32, 64], scope='layer2')
-    layer2 = conv_bn_relu(layer2, kernelshape=[3, 3, 64, 64], scope='layer2_1')
-    pool2 = max_pool_2x2(layer2)
+    #conv1
+    x = Conv2d_BN(inpt, nb_filter=32, kernel_size=(3, 3), strides=(1, 1), padding='same')
+    x = Conv2d_BN(x, nb_filter=32, kernel_size=(3, 3), strides=(1, 1), padding='same')
+    x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='valid')(x)
 
-    # layer3
-    layer3 = conv_bn_relu(pool2, kernelshape=[3, 3, 64, 128], scope='layer3')
-    layer3 = conv_bn_relu(layer3, kernelshape=[3, 3, 128, 128], scope='layer3_1')
-    pool3 = max_pool_2x2(layer3)
+    #conv2_x
+    x = identity_Block(x, nb_filter=64, kernel_size=(3, 3), strides=(1, 1), with_conv_shortcut=True)
+    # x = identity_Block(x, nb_filter=64, kernel_size=(3, 3))
+    x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='valid')(x)
+
+    #conv3_x
+    x = identity_Block(x, nb_filter=96, kernel_size=(3, 3), strides=(1, 1), with_conv_shortcut=True)
+    # x = identity_Block(x, nb_filter=96, kernel_size=(3, 3))
+    # x = identity_Block(x, nb_filter=128, kernel_size=(3, 3))
+    x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='valid')(x)
+
+    #conv4_x
+    x = identity_Block(x, nb_filter=128, kernel_size=(3, 3), strides=(1, 1), with_conv_shortcut=True)
+    x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='valid')(x)
+    # x = identity_Block(x, nb_filter=128, kernel_size=(3, 3))
+    # x = identity_Block(x, nb_filter=256, kernel_size=(3, 3))
+
+    #conv5_x
+    x = identity_Block(x, nb_filter=256, kernel_size=(3, 3), strides=(1, 1), with_conv_shortcut=True)
+    # x = identity_Block(x, nb_filter=512, kernel_size=(3, 3))
+    # x = identity_Block(x, nb_filter=512, kernel_size=(3, 3))
+    x = AveragePooling2D(pool_size=(3, 3), strides=(2, 2), padding='valid')(x)
+    x = Flatten()(x)
+    x = Dense(1000, activation='relu')(x)
+    x = Dropout(0.15)(x)
+    x = Dense(classes)(x)
+
+    model = Model(inputs=inpt, outputs=x)
+    return model
+
+# create your model here
+def myModel(width,height,channel,classes):
+    inpt = Input(shape=(width, height, channel))
+    # layer 1
+    x = Conv2d_BN(x=inpt, nb_filter=32, kernel_size=(3,3), strides=(1,1), padding='same', name='layer1_1')
+    x = Conv2d_BN(x=x, nb_filter=32, kernel_size=(3,3), strides=(1,1), padding='same', name='layer1_2')
+    # x = Conv2d_BN(x=x, nb_filter=48, kernel_size=(3,3), strides=(1,1), padding='same', name='layer1_3')
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='valid')(x)
+
+    # layer 2
+    x = Conv2d_BN(x=x, nb_filter=64, kernel_size=(3,3), strides=(1,1), padding='same', name='layer2_1')
+    x = Conv2d_BN(x=x, nb_filter=64, kernel_size=(3,3), strides=(1,1), padding='same', name='layer2_2')
+    # x = Conv2d_BN(x=x, nb_filter=64, kernel_size=(3,3), strides=(1,1), padding='same', name='layer2_3')
+    # x = Conv2d_BN(x=x, nb_filter=64, kernel_size=(3,3), strides=(1,1), padding='same', name='layer2_4')
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='valid')(x)
+
+    # layer 3
+    x = Conv2d_BN(x=x, nb_filter=96, kernel_size=(3,3), strides=(1,1), padding='same', name='layer3_1')
+    x = Conv2d_BN(x=x, nb_filter=96, kernel_size=(3,3), strides=(1,1), padding='same', name='layer3_2')
+    # x = Conv2d_BN(x=x, nb_filter=96, kernel_size=(3,3), strides=(1,1), padding='same', name='layer3_3')
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='valid')(x)
+
+    # layer 4
+    x = Conv2d_BN(x=x, nb_filter=128, kernel_size=(3,3), strides=(1,1), padding='same', name='layer4_1')
+    x = Conv2d_BN(x=x, nb_filter=128, kernel_size=(3,3), strides=(1,1), padding='same', name='layer4_2')
+    # x = Conv2d_BN(x=x, nb_filter=128, kernel_size=(3,3), strides=(1,1), padding='same', name='layer4_3')
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='valid')(x)
+
+    # layer 5
+    x = Conv2d_BN(x=x, nb_filter=256, kernel_size=(3,3), strides=(1,1), padding='same', name='layer5_1')
+    x = Conv2d_BN(x=x, nb_filter=256, kernel_size=(3,3), strides=(1,1), padding='same', name='layer5_2')
+    # x = Conv2d_BN(x=x, nb_filter=256, kernel_size=(2,2), strides=(1,1), padding='same', name='layer5_3')
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='valid')(x)
+
+    # layer 6
+    x = Conv2d_BN(x=x, nb_filter=512, kernel_size=(3,3), strides=(1,1), padding='same', name='layer6_1')
+    x = Conv2d_BN(x=x, nb_filter=512, kernel_size=(3,3), strides=(1,1), padding='same', name='layer6_2')
+    # x = Conv2d_BN(x=x, nb_filter=512, kernel_size=(2,2), strides=(1,1), padding='same', name='layer6_3')
+    x = AveragePooling2D(pool_size=(2, 2), strides=(2, 2), padding='valid')(x)
+    # x = AveragePooling2D(pool_size=(2, 2), strides=(2, 2), padding='valid')(x)
     
-    # layer4
-    # layer4 = conv_bn_relu(pool3, kernelshape=[3, 3, 128, 256], scope='layer4')
-    # layer4 = conv_bn_relu(layer4, kernelshape=[3, 3, 256, 256], scope='layer4_1')
-    # pool4 = max_pool_2x2(layer4)
+    # layer 7
+    # x = Conv2d_BN(x=x, nb_filter=512, kernel_size=(2,2), strides=(1,1), padding='same', name='layer7_1')
+    # x = Conv2d_BN(x=x, nb_filter=512, kernel_size=(2,2), strides=(1,1), padding='same', name='layer7_2')
+    # x = AveragePooling2D(pool_size=(2, 2), strides=(1, 1), padding='valid')(x) 
+   
+    # fullyconnected layer
+    x = Flatten()(x)
+    # x = Dense(512, activation='relu')(x)
+    # x = Dropout(0.1)(x)
+    x = Dense(1000, activation='relu')(x)
+    x = Dropout(0.15)(x)
+    # x = Dense(512, activation='relu')(x)
+    # x = Dropout(0.15)(x)
+    x = Dense(classes)(x)
 
-    gap = tf.reduce_mean(pool3, axis=(1,2))
-    gap = tf.reshape(gap, shape=[-1,128])
-    fc1 = fullyconnected_relu_layer(gap, shape=[128, 256], scope='fc1')
-    fc2 = fullyconnected_relu_layer(fc1, shape=[256, 512], scope='fc2')
-    fc3 = fullyconnected_relu_layer(fc2, shape=[512, n_class], active=False, scope='fc3')
-    
-    return fc3
+    model = Model(inputs=inpt, outputs=x)
+    return model
 
-def test(batch_size=6):
-    model_file=tf.train.latest_checkpoint('model1/')
-    # model_file = 'model'
-    image_size = 96*96
-    image_width = image_height = 96
-    image_labels = 30
-
-    x, y = load_data()
-    train_images, test_images, train_labels, test_labels = train_test_split(x, y, test_size=0.3,random_state=0)
-    
-    X = tf.placeholder('float', shape=[None, image_width, image_height, 1])
-    y = tf.placeholder('float', shape=[None, image_labels])
-    y_pred = myNet(X=X, image_width=image_width, image_height=image_height, image_channel=1, n_class=30)
-    # cost function
-    cost = tf.sqrt(tf.reduce_mean(tf.square(y_pred-y)))
-    init = tf.initialize_all_variables()
-    saver = tf.train.Saver()
-    sess = tf.InteractiveSession() 
-    sess.run(init)
-    saver.restore(sess, model_file)
-    # 计算训练集与测试集的loss
-    cost_ = tf.square(y_pred-y)
-    loss = 0.0
-    test_nums = test_images.shape[0]
-    for i in range(0, test_nums, batch_size):
-        loss_ = cost_.eval(feed_dict={X: test_images[i:i+batch_size], y: test_labels[i:i+batch_size]})
-        loss += np.sum(loss_)
-    test_cost_epoch = np.sqrt(loss/(test_nums*image_labels))
-    print('test loss: %.6f' %test_cost_epoch)
+def train(epochs=100, batch_size=48):
+    X, y = load_data(False)
+    x_train,x_test,y_train,y_test = train_test_split(X,y,random_state = 69,test_size = 0.1)
+    model = myModel(96,96,1,30)
+    # model = resnet(96, 96, 1, 30)
+    # rmsprop = optimizers.RMSprop(decay=0.00001)
+    model.compile(optimizer = 'rmsprop',loss = 'mean_squared_error',  metrics = ['acc'])
+    # 保存最优模型
+    checkpoint = keras.callbacks.ModelCheckpoint('model/best_weights.h5',monitor='val_loss',save_best_only=True)
+    # 15个epoch没变化时停止训练
+    earlystop = keras.callbacks.EarlyStopping(monitor='val_loss',patience=15)
+    # 保存loss曲线和精度曲线
+    tb = keras.callbacks.TensorBoard(log_dir='model/log/')
+    # 更新lr的回调函数
+    updatelr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr = 0.0002)
+    callbacks_list = [checkpoint, earlystop, tb, updatelr]
+    model.fit(x_train,y_train,batch_size=batch_size, epochs=epochs, validation_data=(x_test,y_test), callbacks=callbacks_list)
+    # model.save('model_5/weights.h5')
 
 if __name__ == '__main__':
-    test(batch_size=6)
+    train(epochs=100, batch_size=32)
