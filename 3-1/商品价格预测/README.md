@@ -74,20 +74,20 @@ data = pd.read_csv('data/train.csv', sep='\t')
 data.describe()
 ```
 
-<img src="D:\learn\数据科学导论\大作业\12.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/12.png" style="zoom:80%;" />
 
 ```python
 # 查看缺失值
 data.isnull().any()
 ```
 
-<img src="D:\learn\数据科学导论\大作业\10.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/10.png" style="zoom:80%;" />
 
 ```python
 data.isnull().sum()
 ```
 
-<img src="D:\learn\数据科学导论\大作业\11.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/11.png" style="zoom:80%;" />
 
 可以看到其中**category_name**和**brand_name**这两个特征存在缺失值，并且**brand_name**缺失值的数量比较多。
 
@@ -109,7 +109,7 @@ df = featureProcessing(data)
 df.head()
 ```
 
-![](D:\learn\数据科学导论\大作业\13.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/13.png)
 
 ```python
 # 绘制price柱形图
@@ -117,7 +117,7 @@ width = [50, 100, 150, 200, 250, 300, 350]
 sns.distplot(train_data['price'], color = 'g', rug = True, bins = [w for w in width])
 ```
 
-<img src="D:\learn\数据科学导论\大作业\15.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/15.png" style="zoom:80%;" />
 
 可以看到**price**的频率分布。
 
@@ -129,7 +129,7 @@ ax.set_xticklabels(ax.get_xticklabels(), rotation = 40, ha = "right")
 ax.set_title('Count of each item condition')
 ```
 
-<img src="D:\learn\数据科学导论\大作业\14.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/14.png" style="zoom:80%;" />
 
 可以看到为取值为1的分布最多，取值为4，5的相对较少。
 
@@ -140,7 +140,7 @@ plt.title('Log Price Distribution', fontsize = 12)
 np.log(train_data['price'] + 1).plot.hist(bins = 50, figsize = (8, 4), edgecolor = 'white', color = 'g')
 ```
 
-<img src="D:\learn\数据科学导论\大作业\16.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/16.png" style="zoom:80%;" />
 
 经过log处理后的价格分布情况。
 
@@ -149,7 +149,7 @@ np.log(train_data['price'] + 1).plot.hist(bins = 50, figsize = (8, 4), edgecolor
 print(df.astype('object').describe().transpose())
 ```
 
-<img src="D:\learn\数据科学导论\大作业\17.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/17.png" style="zoom:80%;" />
 
 可以看到每个特征的具体信息。
 
@@ -163,7 +163,7 @@ zip(*df['category_name'].apply(lambda x: split_cat(x)))
 print(df['cat1'].value_counts() / len(df['cat1']))
 ```
 
-<img src="D:\learn\数据科学导论\大作业\18.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/18.png" style="zoom:80%;" />
 
 ```python
 # Category切分之后的第一部分的出现次数最多的前10个
@@ -174,7 +174,7 @@ plt.ylabel('Cat1 Category', fontsize = 20)
 plt.xlabel('Number of Items')
 ```
 
-![](D:\learn\数据科学导论\大作业\22.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/22.png)
 
 ```python
 # 通过cat1绘制二元特征shipping的柱形分布图
@@ -183,7 +183,7 @@ ax.set_xticklabels(ax.get_xticklabels(), rotation = 40, ha = "right")
 ax.set_title('Count of shipping by cat1')
 ```
 
-<img src="D:\learn\数据科学导论\大作业\19.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/19.png" style="zoom:80%;" />
 
 挑选**cat1**和**shipping**来看一看分布情况。
 
@@ -201,7 +201,7 @@ plt.tick_params(labelsize = 12)
 plt.legend()
 ```
 
-<img src="D:\learn\数据科学导论\大作业\20.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/20.png" style="zoom:80%;" />
 
 可以看到包邮时整体平均价格会相对低一些。
 
@@ -213,7 +213,7 @@ ax.set_xticklabels(ax.get_xticklabels(),rotation = 90)
 ax.set_title('Top 20 Brand', fontsize = 15)
 ```
 
-<img src="D:\learn\数据科学导论\大作业\21.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/21.png" style="zoom:80%;" />
 
 
 
@@ -235,7 +235,7 @@ ax.set_title('Top 20 Brand', fontsize = 15)
 df['brand_name_name'] = df['brand_name'].fillna('') + ' ' + df['name'].fillna('')
 ~~~
 
-![](D:\learn\数据科学导论\大作业\2.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/2.png)
 
 * **name**和**cat2**
 
@@ -248,7 +248,7 @@ df['cat1'], df['cat2'], df['cat3'] = \
 zip(*df['category_name'].apply(lambda x: split_cat(x)))
 ```
 
-![](D:\learn\数据科学导论\大作业\9.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/9.png)
 
 ```python
 print('cat1: %d, cat2: %d, cat3: %d' %(cat1.nunique(), cat2.nunique(), cat3.nunique()))
@@ -270,7 +270,7 @@ df['name_cat3'] = df['name'].fillna('') + ' ' + df['cat3'].fillna('')
 df = df.drop(['name_cat1', 'name_cat3'])
 ```
 
-![](D:\learn\数据科学导论\大作业\4.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/4.png)
 
 * name，item_description和brand_name
 
@@ -280,7 +280,7 @@ df = df.drop(['name_cat1', 'name_cat3'])
 df['text'] = df['item_description'].fillna('') + ' ' + df['name'].fillna('') + ' ' + df['brand_name'].fillna('')
 ```
 
-![](D:\learn\数据科学导论\大作业\5.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/5.png)
 
 * brand_name，cat23，id和shipping
 
@@ -290,11 +290,11 @@ df['text'] = df['item_description'].fillna('') + ' ' + df['name'].fillna('') + '
 df['bn_cat23_id_shipping'] = df['brand_name'] + df['cat23']+df['item_condition_id']+df['shipping']
 ```
 
-![](D:\learn\数据科学导论\大作业\6.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/6.png)
 
 于是，我们得到了我们想要的重组之后的特征组合。为了降低特征维度，我们试图寻找可以删减不用的特征。因为**text**这个特征在合并的时候，之间加了分隔符空格，再加上TfidfVectorizer会使得整个句子按照默认字符空格将所有单词分开，所以**text**实际上包含了**name**和**item_description**这两个特征。经过验证，在删掉这两个特征时，最终结果并没有太大的变化，但对于其它特征来说，删去则会使结果表现得更糟糕。最终，我们便确定了我们所需要的特征组合。
 
-![](D:\learn\数据科学导论\大作业\7.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/7.png)
 
 #### 四. 模型构建
 
@@ -422,7 +422,7 @@ for iters in [400,450,500,550,600,650,700]:
 '''
 ```
 
-![](D:\learn\数据科学导论\大作业\28.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/28.png)
 
 这里是我们测试的不同学习率对结果的影响，可以看到当alpha为3.3，3.4，3.5的时候，结果最好。
 
@@ -436,19 +436,19 @@ for iters in [400,450,500,550,600,650,700]:
 
 最初我们只设置了两层，第一层的神经元个数为8，第二层的神经元个数为4，激活函数为relu，epochs为5，得到如下的结果：
 
-![](D:\learn\数据科学导论\大作业\26.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/26.png)
 
 可以看到由于模型太过于简单，最终的效果并不好。
 
 于是我们将两层扩充至三层，第一层的神经元个数为16，第二层的神经元个数为8，第三层神经元个数为4，激活函数为relu，epochs为5，得到如下结果：
 
-![](D:\learn\数据科学导论\大作业\30.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/30.png)
 
 可以看到第二个epoch就已经到了最优的结果了，所以证明模型还不够复杂，于是加下来我们又更改了模型参数。
 
 最后我们扩充至四层模型，第一层到第四层的神经元个数分别为64，16，16，8，激活函数为relu，得到如下的结果：
 
-<img src="D:\learn\数据科学导论\大作业\8.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/8.png" style="zoom:80%;" />
 
 因为我们的特征维度太大，所以我们没有再复杂化整个模型，可以看到效果并没有岭回归好，并且训练速度也非常慢，在第一个epoch后就基本不会再提升了。最终我们放弃了这个模型。
 
@@ -456,23 +456,23 @@ for iters in [400,450,500,550,600,650,700]:
 
 刚开始参数设置
 
-<img src="D:\learn\数据科学导论\大作业\24.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/24.png" style="zoom:80%;" />
 
 总共迭代2000次，最终结果如下：
 
-<img src="D:\learn\数据科学导论\大作业\23.jpg" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/23.jpg" style="zoom:80%;" />
 
 可以看到结果在0.2099的样子。
 
 然后我们改变参数如下：
 
-<img src="D:\learn\数据科学导论\大作业\25.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/25.png" style="zoom:80%;" />
 
 即增大了叶子节点数，其它保持不变。
 
 最终结果如下：
 
-![](D:\learn\数据科学导论\大作业\27.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/27.png)
 
 可以看到相对于上面的结果，叶子节点数增加了一倍，而最终结果只降低了0.004。还是没有岭回归得到的效果好。所以我们放弃了这个模型。
 
@@ -526,7 +526,7 @@ data = data.drop(error,axis=1)
 
 最开始**name**这个特征我们用的是CountVectorizer来将其转变为词频矩阵，但是我们后来发现，**name**中可能存在出现频率大但却不重要的词，所以我们将其乘上一个idf权重，即我们把CountVectorizer变成TfidfVectorizer，经过测试，确实TfidfVectorizer让结果优化了不少。
 
-![](D:\learn\数据科学导论\大作业\29.png)
+![](https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/DataScience/5/29.png)
 
 这是我们最终的特征组合，其中分类的特征用的是CountVectorizer，而对于句子，描述等特称我们用的是TfidfVectorizer。我们还分别测试了ngram_range以及max_features不同的值对结果的影响，最终确定了以上的参数为我们的最优化模型。这也导致我们的模型太大，特征维度太高。
 
