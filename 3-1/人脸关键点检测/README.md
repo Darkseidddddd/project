@@ -1,16 +1,3 @@
----
-title: 人脸关键点检测
-date: 2020-01-16 02:00:19
-updated: 2020-02-10 14:35:47
-cover: https://cdn.jsdelivr.net/gh/darkseidddddd/CDN@4.0/MachineLearning/6/cover.jpg
-tags:
-- 机器学习
-- CNN
-- 深度学习
-categories:
-- [机器学习]
----
-
 ### 任务描述：
 使用（96，96）的灰度图进行15个人脸关键点的预测
 ### 数据集介绍：
@@ -19,7 +6,6 @@ categories:
 包含了读取数据集，输入标签分离，结果导出等代码。
 * 评测方式：
 * * 使用自己编写的模型对训练集数据进行预测，将预测结果使用提供的函数导出到csv文件，文件使用完整的学号命名。
-
 
 ---
 ---
@@ -157,8 +143,8 @@ def myModel(width,height,channel,classes):
 * 评测指标：
 
 $$
-RMSE=\sqrt {\frac {1}{n}\sum_{i=1}\^n(y_i-\hat y_i)\^2}\\\\
-MSE=\frac {1}{n}\sum\_{i=1}\^n(y\_i-\hat y\_i)\^2
+RMSE=\sqrt {\frac {1}{n}\sum_{i=1}^n(y_i-\hat y_i)^2}\\
+MSE=\frac {1}{n}\sum_{i=1}^n(y_i-\hat y_i)^2
 $$
 
 * 当验证集的loss连续超过10个epochs没下降时，降级学习率，变为原来的一办。
