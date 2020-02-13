@@ -6,5 +6,4 @@
 
 #### 一
 
-[softmax]: 3-1\softmax多分类
-
+[softmax多分类]("3-1/softmax多分类")
