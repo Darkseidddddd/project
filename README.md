@@ -17,3 +17,4 @@
   * [人脸关键点检测](3-1/人脸关键点检测)
   * [商品价格预测](3-1/商品价格预测)
 * [leetcode](leetcode)
+* [遥感图像的语义分割](https://github.com/Darkseidddddd/Semantic-Segmentation)
