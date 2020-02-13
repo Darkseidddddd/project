@@ -4,7 +4,7 @@
 
 主要从3-1开始，前面的内容比较零散，没有整理完整上传。
 
-其余的work在[这里](darkseid.top)。
+其余的work在[这里](https://www.darkseid.top)。
 
 * [1-2](1-2)
   * [JobShop车间管理调度](1-2/JobShop)
